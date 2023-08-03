@@ -1,15 +1,9 @@
 {
     "name": "sopheos/pebble_http",
     "description": "Request / Response library",
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "www@g.sopheos.com:git/pebble_security.git"
-        }
-    ],
     "require": {
         "php": ">=8.1.0",
-        "sopheos/pebble_security": "^1.0",
+        "sopheos/pebble_security": "^0.0.1",
         "guzzlehttp/guzzle": "^7.0"
     },
     "require-dev": {
