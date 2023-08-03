@@ -1,6 +1,7 @@
 {
     "name": "sopheos/pebble_http",
     "description": "Request / Response library",
+    "license": "MIT",
     "require": {
         "php": ">=8.1.0",
         "sopheos/pebble_security": "^0.0.1",
