@@ -448,18 +448,14 @@ class Request
      */
     private static function parseBodyParams(): array
     {
-        $method = $_SERVER['REQUEST_METHOD'] ?? '';
-
-        if ($method === 'PUT' || $method === 'POST') {
-            if ($_POST) {
-                return $_POST;
-            } elseif (($input = file_get_contents('php://input'))) {
-                if (($data = self::parseJson($input)) !== null) {
-                    return $data;
-                }
-
-                return self::parseQueryString($input);
+        if ($_POST) {
+            return $_POST;
+        } elseif (($input = file_get_contents('php://input'))) {
+            if (($data = self::parseJson($input)) !== null) {
+                return $data;
             }
+
+            return self::parseQueryString($input);
         }
 
         return [];
