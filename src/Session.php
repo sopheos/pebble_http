@@ -68,6 +68,20 @@ class Session
     // -------------------------------------------------------------------------
 
     /**
+     * Return session ID
+     *
+     * @return string|null
+     */
+    public function id(): ?string
+    {
+        if ($this->started) {
+            return session_id() ?: null;
+        }
+
+        return null;
+    }
+
+    /**
      * Get all
      *
      * @return array
