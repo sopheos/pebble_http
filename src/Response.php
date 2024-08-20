@@ -3,7 +3,6 @@
 namespace Pebble\Http;
 
 use Pebble\Http\Exceptions\ResponseException;
-use Stringable;
 
 class Response
 {
@@ -343,9 +342,9 @@ class Response
         $mime = self::$mimesTypes[$mime][0] ?? $mime;
 
         if ($charset) {
-            $this->addHeader("content-type", "{$mime}; charset={$charset}");
+            $this->addHeader("Content-Type", "{$mime}; charset={$charset}");
         } else {
-            $this->addHeader("content-type", "{$mime}");
+            $this->addHeader("Content-Type", "{$mime}");
         }
 
         return $this;
@@ -390,7 +389,7 @@ class Response
             $header .= '; SameSite=' . $samesite;
         }
 
-        return $this->addHeader('Set-cookie', $header);
+        return $this->addHeader('Set-Cookie', $header);
     }
 
     /**
@@ -413,9 +412,15 @@ class Response
      */
     public function redirect(string $url = "/", bool $temporary = true): static
     {
+        $headers = $this->getHeaders();
+        $cookies = $headers['Set-Cookie'] ?? [];
+
         $this->reset();
         $this->setStatusCode($temporary ? 302 : 301);
-        $this->addHeader("location", filter_var($url, FILTER_SANITIZE_URL));
+        $this->addHeader("Location", filter_var($url, FILTER_SANITIZE_URL));
+        foreach ($cookies as $cookie) {
+            $this->addHeader('Set-Cookie', $cookie);
+        }
 
         return $this;
     }
@@ -428,9 +433,9 @@ class Response
      */
     public function cache(int $age = 86400): static
     {
-        $this->addHeader("pragma", "public");
-        $this->addHeader("cache-control", "max-age=" . $age);
-        $this->addHeader("expires", self::gmdate(time() + $age));
+        $this->addHeader("Pragma", "public");
+        $this->addHeader("Cache-Control", "max-age=" . $age);
+        $this->addHeader("Expires", self::gmdate(time() + $age));
 
         return $this;
     }
@@ -442,11 +447,11 @@ class Response
      */
     public function noCache(): static
     {
-        $this->addHeader("expires", "Mon, 26 Jul 1990 05:00:00 GMT");
-        $this->addHeader("last-modified", "" . gmdate("D, d M Y H:i:s") . " GMT");
-        $this->addHeader("cache-control", "no-store, no-cache, must-revalidate");
-        $this->addHeader("cache-control", "post-check=0, pre-check=0", false);
-        $this->addHeader("pragma", "no-cache");
+        $this->addHeader("Expires", "Mon, 26 Jul 1990 05:00:00 GMT");
+        $this->addHeader("Last-Modified", "" . gmdate("D, d M Y H:i:s") . " GMT");
+        $this->addHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+        $this->addHeader("Cache-Control", "post-check=0, pre-check=0", false);
+        $this->addHeader("Pragma", "no-cache");
 
         return $this;
     }
@@ -464,11 +469,11 @@ class Response
         $methods = $methods ?? $this->corsSettings['methods'];
         $headers = $headers ?? $this->corsSettings['headers'];
 
-        $this->addHeader("access-control-allow-origin", $origin);
-        $this->addHeader("access-control-allow-credentials", "true");
-        $this->addHeader("access-control-max-age", "86400");
-        $this->addHeader("access-control-allow-methods", $methods);
-        $this->addHeader("access-control-allow-headers", $headers);
+        $this->addHeader("Access-Control-Allow-Origin", $origin);
+        $this->addHeader("Access-Control-Allow-Credentials", "true");
+        $this->addHeader("Access-Control-Max-Age", "86400");
+        $this->addHeader("Access-Control-Allow-Methods", $methods);
+        $this->addHeader("Access-Control-Allow-Headers", $headers);
 
         return $this;
     }

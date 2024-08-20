@@ -97,6 +97,16 @@ class ResponseException extends Exception implements JsonSerializable
 
     // -------------------------------------------------------------------------
 
+    public function getErrors(): array
+    {
+        return $this->errors;
+    }
+
+    public function getExtra(): array
+    {
+        return $this->extra;
+    }
+
     public function jsonSerialize(): mixed
     {
         return [
