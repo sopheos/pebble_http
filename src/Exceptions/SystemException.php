@@ -4,11 +4,8 @@ namespace Pebble\Http\Exceptions;
 
 class SystemException extends ResponseException
 {
-    /**
-     * @return integer
-     */
-    protected function status(): int
+    public function __construct(string $error = 'default')
     {
-        return 500;
+        parent::__construct($error, 500);
     }
 }

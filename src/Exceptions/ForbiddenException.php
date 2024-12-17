@@ -4,8 +4,8 @@ namespace Pebble\Http\Exceptions;
 
 class ForbiddenException extends ResponseException
 {
-    protected function status(): int
+    public function __construct(string $error = 'default')
     {
-        return 403;
+        parent::__construct($error, 403);
     }
 }

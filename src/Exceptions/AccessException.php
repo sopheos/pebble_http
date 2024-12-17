@@ -4,8 +4,8 @@ namespace Pebble\Http\Exceptions;
 
 class AccessException extends ResponseException
 {
-    protected function status(): int
+    public function __construct(string $error = 'default')
     {
-        return 401;
+        parent::__construct($error, 401);
     }
 }

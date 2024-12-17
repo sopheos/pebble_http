@@ -4,8 +4,8 @@ namespace Pebble\Http\Exceptions;
 
 class LockException extends ResponseException
 {
-    protected function status(): int
+    public function __construct(string $error = 'default')
     {
-        return 423;
+        parent::__construct($error, 423);
     }
 }

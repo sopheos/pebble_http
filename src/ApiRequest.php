@@ -23,9 +23,9 @@ class ApiRequest
         $this->url = $url;
     }
 
-    public static function create(string $url, ?array $clientOptions = null): static
+    public static function create(string $url): static
     {
-        return new static($url, $clientOptions);
+        return new static($url);
     }
 
     // -------------------------------------------------------------------------

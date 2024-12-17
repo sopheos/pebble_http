@@ -12,21 +12,19 @@ class ResponseException extends Exception implements JsonSerializable
 
     // -------------------------------------------------------------------------
 
-    /**
-     * @param string $error
-     */
-    public function __construct(string $error = 'default')
+    public function __construct(string $error = 'default', int $status = 418)
     {
-        parent::__construct($error, $this->status());
+        parent::__construct($error, $status);
     }
 
-    /**
-     * @param string $error
-     * @return static
-     */
     public static function create(string $error = 'default'): static
     {
         return new static($error);
+    }
+
+    public static function createWithStatus(int $status, string $error = 'default'): static
+    {
+        return new static($error, $status);
     }
 
     // -------------------------------------------------------------------------
@@ -38,7 +36,7 @@ class ResponseException extends Exception implements JsonSerializable
      */
     protected function status(): int
     {
-        return 418;
+        return $this->getCode();
     }
 
     // -------------------------------------------------------------------------
@@ -112,8 +110,8 @@ class ResponseException extends Exception implements JsonSerializable
         return [
             'status' => $this->getCode(),
             'error' => $this->getMessage(),
-            'errors' => $this->errors,
-            'extra' => $this->extra,
+            'errors' => $this->errors ?: null,
+            'extra' => $this->extra ?: null,
         ];
     }
 

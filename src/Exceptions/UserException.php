@@ -4,8 +4,8 @@ namespace Pebble\Http\Exceptions;
 
 class UserException extends ResponseException
 {
-    protected function status(): int
+    public function __construct(string $error = 'default')
     {
-        return 400;
+        parent::__construct($error, 400);
     }
 }
