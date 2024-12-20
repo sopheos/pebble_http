@@ -25,19 +25,23 @@ class Session
     // -------------------------------------------------------------------------
 
     /**
+     * Start session
      * Handles temporary variables
-     *
      * Mark flash data for deletion, and clear old data
      *
      * @return static
      */
-    public function start(): static
+    public function start(?string $id = null): static
     {
         if ($this->started) {
             return $this;
         }
 
         $this->started = true;
+
+        if ($id) {
+            session_id($id);
+        }
         session_start();
 
         // Nothing to do
