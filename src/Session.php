@@ -2,6 +2,8 @@
 
 namespace Pebble\Http;
 
+use SessionHandlerInterface;
+
 /**
  * Session
  */
@@ -13,9 +15,9 @@ class Session
     // -------------------------------------------------------------------------
 
     /**
-     * @param \SessionHandlerInterface $handler
+     * @param SessionHandlerInterface $handler
      */
-    public function __construct(\SessionHandlerInterface $handler = NULL)
+    public function __construct(?SessionHandlerInterface $handler = null)
     {
         if ($handler) {
             session_set_save_handler($handler, TRUE);
