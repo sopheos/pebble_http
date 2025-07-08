@@ -129,6 +129,30 @@ class Request
         return $this->uri;
     }
 
+    public function baseUrl(): string
+    {
+        if (! $this->server('HTTP_HOST')) {
+            return '';
+        }
+
+        $protocol = $this->isSecure() ? 'https' : 'http';
+        return $protocol . '//' . $this->server('HTTP_HOST');
+    }
+
+    public function currentUrl(bool $withQueryString = true): string
+    {
+        $url = $this->baseUrl() . $this->uri();
+
+        if ($withQueryString && $this->queryParams()) {
+            $url .= "?" . http_build_query(
+                data: $this->queryParams(),
+                encoding_type: PHP_QUERY_RFC3986
+            );
+        }
+
+        return $url;
+    }
+
     /**
      * Returns server params
      *
