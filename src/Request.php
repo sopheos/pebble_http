@@ -136,7 +136,7 @@ class Request
         }
 
         $protocol = $this->isSecure() ? 'https' : 'http';
-        return $protocol . '//' . $this->server('HTTP_HOST');
+        return $protocol . '://' . $this->server('HTTP_HOST');
     }
 
     public function currentUrl(bool $withQueryString = true): string
