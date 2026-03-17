@@ -4,10 +4,10 @@ namespace Pebble\Http\Exceptions;
 
 use Pebble\Http\Response;
 
-class ForbiddenException extends ResponseException
+class ExpiredException extends ResponseException
 {
     public function __construct(string $error = 'default')
     {
-        parent::__construct($error, Response::HTTP_FORBIDDEN);
+        parent::__construct($error, Response::HTTP_PAGE_EXPIRED);
     }
 }

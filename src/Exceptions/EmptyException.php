@@ -2,10 +2,12 @@
 
 namespace Pebble\Http\Exceptions;
 
+use Pebble\Http\Response;
+
 class EmptyException extends ResponseException
 {
     public function __construct(string $error = 'default')
     {
-        parent::__construct($error, 404);
+        parent::__construct($error, Response::HTTP_NOT_FOUND);
     }
 }
