@@ -351,7 +351,7 @@ class Request
      */
     public function bodyParam(string $name): mixed
     {
-        return $this->bodyParams[$name];
+        return $this->bodyParams[$name] ?? null;
     }
 
     /**
