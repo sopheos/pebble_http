@@ -2,7 +2,10 @@
 
 namespace Pebble\Http;
 
+use Nyholm\Psr7\Factory\Psr17Factory;
 use Pebble\Http\Exceptions\ResponseException;
+use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Message\StreamInterface;
 
 class Response
 {
@@ -76,12 +79,13 @@ class Response
 
     protected array $settings = [];
 
-    private string $version = '';
+    private string $version = '1.1';
     private int $statusCode = 200;
     private string $statusReason = 'OK';
     private array $headers = [];
-    private ?Stream $body = null;
+    private ?StreamInterface $body = null;
 
+    private ?StreamFactoryInterface $streamFactory = null;
     private int $buffer = 0;
 
     private array $cookieSettings = [
@@ -101,7 +105,6 @@ class Response
 
 
     /**
-     * @param array $settings
      * @return static
      */
     public static function create(): static
@@ -115,10 +118,6 @@ class Response
             ->setProtocolVersion(self::findProtocolVersion($_SERVER))
             ->setCookieSecure(self::isSecure($_SERVER))
             ->setCorsOrigin();
-
-        if (isset($_SERVER["SERVER_PROTOCOL"])) {
-            $res->setProtocolVersion($_SERVER["SERVER_PROTOCOL"]);
-        }
 
         if (isset($_SERVER["HTTP_ORIGIN"])) {
             $res->setCorsOrigin($_SERVER["HTTP_ORIGIN"]);
@@ -143,12 +142,34 @@ class Response
 
     private static function findProtocolVersion(array $server): string
     {
-        return $server["SERVER_PROTOCOL"] ?? "1.0";
+        return $server["SERVER_PROTOCOL"] ?? "1.1";
     }
 
     // -------------------------------------------------------------------------
     // Configuration
     // -------------------------------------------------------------------------
+
+    /**
+     * Sets the PSR-17 stream factory used to build bodies
+     *
+     * @param StreamFactoryInterface $factory
+     * @return static
+     */
+    public function setStreamFactory(StreamFactoryInterface $factory): static
+    {
+        $this->streamFactory = $factory;
+        return $this;
+    }
+
+    /**
+     * Returns the stream factory, defaults to nyholm/psr7
+     *
+     * @return StreamFactoryInterface
+     */
+    public function getStreamFactory(): StreamFactoryInterface
+    {
+        return $this->streamFactory ??= new Psr17Factory();
+    }
 
     public function setBuffer(int $buffer): static
     {
@@ -215,6 +236,9 @@ class Response
     // -------------------------------------------------------------------------
 
     /**
+     * Resets headers and body.
+     * Configuration (stream factory, buffer, cookie/cors settings) is kept.
+     *
      * @return static
      */
     public function reset(): static
@@ -296,15 +320,37 @@ class Response
     }
 
     /**
-     * Adds HTTP header
+     * Returns values for a given header
      *
-     * @param string $name
-     * @param string $value
-     * @return static
+     * @param string $header
+     * @return string[]
      */
-    public function addHeader(string $name, string $value): static
+    public function getHeader(string $header): array
+    {
+        return $this->headers[self::normalizeHeaderName($header)] ?? [];
+    }
+
+    /**
+     * Checks if a header is set
+     *
+     * @param string $header
+     * @return bool
+     */
+    public function hasHeader(string $header): bool
+    {
+        return $this->getHeader($header) !== [];
+    }
+
+    /**
+     * Adds HTTP header
+     */
+    public function addHeader(string $name, string $value, bool $replace = false): static
     {
         $name = self::normalizeHeaderName($name);
+
+        if ($replace) {
+            $this->removeHeader($name);
+        }
 
         if (!isset($this->headers[$name])) {
             $this->headers[$name] = [];
@@ -340,15 +386,9 @@ class Response
      */
     public function setContentType(string $mime, string $charset = "UTF-8"): static
     {
-        $mime = self::$mimesTypes[$mime][0] ?? $mime;
-
-        if ($charset) {
-            $this->addHeader("Content-Type", "{$mime}; charset={$charset}");
-        } else {
-            $this->addHeader("Content-Type", "{$mime}");
-        }
-
-        return $this;
+        $mime  = self::$mimesTypes[$mime][0] ?? $mime;
+        $mime = $charset ? "{$mime}; charset={$charset}" : $mime;
+        return $this->addHeader("Content-Type", $mime, true);
     }
 
     /**
@@ -451,7 +491,7 @@ class Response
         $this->addHeader("Expires", "Mon, 26 Jul 1990 05:00:00 GMT");
         $this->addHeader("Last-Modified", "" . gmdate("D, d M Y H:i:s") . " GMT");
         $this->addHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-        $this->addHeader("Cache-Control", "post-check=0, pre-check=0", false);
+        $this->addHeader("Cache-Control", "post-check=0, pre-check=0");
         $this->addHeader("Pragma", "no-cache");
 
         return $this;
@@ -461,7 +501,7 @@ class Response
      * Enables CORS
      *
      * @param string|null $origin
-     * @param string|null $method
+     * @param string|null $methods
      * @return $this
      */
     public function cors(?string $origin = null, ?string $methods = null, ?string $headers = null): static
@@ -486,12 +526,12 @@ class Response
     /**
      * Returns body
      *
-     * @return Stream
+     * @return StreamInterface
      */
-    public function getBody(): Stream
+    public function getBody(): StreamInterface
     {
         if ($this->body === null) {
-            $this->body = new Stream("");
+            $this->body = $this->getStreamFactory()->createStream('');
         }
 
         return $this->body;
@@ -500,17 +540,36 @@ class Response
     /**
      * Sets body
      *
-     * @param mixed $body
-     * @return object
+     * @param StreamInterface|resource|string|null $body
+     * @return static
      */
     public function setBody($body = ""): static
     {
-        if ($body instanceof Stream) {
+        if ($body instanceof StreamInterface) {
             $this->body = $body;
+        } elseif (is_resource($body)) {
+            $this->body = $this->getStreamFactory()->createStreamFromResource($body);
+        } elseif ($body === null || is_scalar($body) || $body instanceof \Stringable) {
+            $this->body = $this->getStreamFactory()->createStream((string) $body);
         } else {
-            $this->body = new Stream($body);
+            throw new \InvalidArgumentException(
+                'Body must be a StreamInterface, resource, string or Stringable.'
+            );
         }
 
+        return $this;
+    }
+
+    /**
+     * Sets body from a file, streamed without loading it in memory
+     *
+     * @param string $filename
+     * @param string $mode
+     * @return static
+     */
+    public function setBodyFile(string $filename, string $mode = 'r'): static
+    {
+        $this->body = $this->getStreamFactory()->createStreamFromFile($filename, $mode);
         return $this;
     }
 
@@ -529,11 +588,15 @@ class Response
      * Convert data into json output
      *
      * @param mixed $data
+     * @param int $flags
      * @return static
+     * @throws \JsonException
      */
-    public function setJson(mixed $data = null): static
+    public function setJson(mixed $data = null, int $flags = 0): static
     {
-        return $this->setContentType('json')->setBody(json_encode($data));
+        return $this
+            ->setContentType('json')
+            ->setBody(json_encode($data, $flags | JSON_THROW_ON_ERROR));
     }
 
     /**
@@ -556,7 +619,7 @@ class Response
      *
      * @return void
      */
-    public function emit(int $bufferLength = 0)
+    public function emit(?int $bufferLength = null): void
     {
         $this->emitHeaders();
         $this->emitBody($bufferLength);
@@ -564,10 +627,8 @@ class Response
 
     /**
      * Sends headers
-     *
-     * @return $this
      */
-    public function emitHeaders()
+    public function emitHeaders(): void
     {
         // Headers have already been sent by the developer
         if (headers_sent()) {
@@ -590,23 +651,21 @@ class Response
     /**
      * Sends Content
      *
-     * @return
+     * @return void
      */
-    public function emitBody(int $bufferLength = 0)
+    public function emitBody(?int $bufferLength = null): void
     {
-        if ($bufferLength === null) {
-            $bufferLength = $this->buffer;
-        }
-
-        if (!$bufferLength) {
-            echo $this->getBody();
-            return;
-        }
+        $bufferLength = $bufferLength ?? $this->buffer;
 
         $body = $this->getBody();
 
         if ($body->isSeekable()) {
             $body->rewind();
+        }
+
+        if ($bufferLength <= 0) {
+            echo $body->getContents();
+            return;
         }
 
         while (!$body->eof()) {
