@@ -2,6 +2,16 @@
 
 Couche d'abstraction pour PHP pour analyser des requetes HTTP et créer des réponse HTTP.
 
+## Claude Code
+
+Ce package fournit un skill Claude Code dans [`skills/pebble-http/`](skills/pebble-http/) qui documente les patterns d'usage et les pièges de la librairie (redirect qui reset les headers, parsing JSON automatique, sessions, etc.).
+
+Dans un projet qui dépend de `sopheos/pebble_http`, copie-le une fois dans `.claude/skills/` après `composer install` pour que Claude Code le charge automatiquement (le nom du dossier doit rester `pebble-http`, il doit correspondre au `name` déclaré dans `SKILL.md`) :
+
+```bash
+cp -r vendor/sopheos/pebble_http/skills/pebble-http .claude/skills/pebble-http
+```
+
 ## Request
 
 `Pebble\Http\Request` Récupération de données d'une requète HTTP.

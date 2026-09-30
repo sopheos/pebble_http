@@ -4,9 +4,12 @@ namespace Pebble\Http\Exceptions;
 
 use Exception;
 use JsonSerializable;
+use Pebble\Http\HttpStatusTrait;
 
 class ResponseException extends Exception implements JsonSerializable
 {
+    use HttpStatusTrait;
+
     private array $errors = [];
     private array $extra = [];
 
